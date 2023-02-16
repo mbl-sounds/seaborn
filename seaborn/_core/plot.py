@@ -1001,6 +1001,7 @@ class Plotter:
             tuple[str, str | int], list[Artist], list[str],
         ]] = []
         self._scales: dict[str, Scale] = {}
+        self._legend_args = {}
 
     def save(self, loc, **kwargs) -> Plotter:  # TODO type args
         kwargs.setdefault("dpi", 96)
