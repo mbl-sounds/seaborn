@@ -333,6 +333,7 @@ class Plot:
         self._limits = {}
         self._labels = {}
         self._theme = {}
+        self._legend = {}
 
         self._facet_spec = {}
         self._pair_spec = {}
@@ -412,6 +413,7 @@ class Plot:
         new._limits.update(self._limits)
         new._labels.update(self._labels)
         new._theme.update(self._theme)
+        new._legend.update(self._legend)
 
         new._facet_spec.update(self._facet_spec)
         new._pair_spec.update(self._pair_spec)
@@ -879,6 +881,20 @@ class Plot:
 
         return new
 
+    def legend(self, *args: dict[str, Any]) -> Plot:
+        new = self._clone()
+
+        # We can skip this whole block on Python 3.8+ with positional-only syntax
+        nargs = len(args)
+        if nargs != 1:
+            err = f"legend() takes 1 positional argument, but {nargs} were given"
+            raise TypeError(err)
+
+        rc = args[0]
+        new._legend.update(rc)
+
+        return new
+
     def save(self, loc, **kwargs) -> Plot:
         """
         Compile the plot and write it to a buffer or file on disk.
@@ -955,6 +971,7 @@ class Plot:
             plotter._plot_layer(self, layer)
 
         # Add various figure decorations
+        plotter._set_legend_args(self._legend)
         plotter._make_legend(self)
         plotter._finalize_figure(self)
 
@@ -1698,6 +1715,9 @@ class Plotter:
 
         self._legend_contents.extend(contents)
 
+    def _set_legend_args(self, args):
+        self._legend_args.update(args)
+
     def _make_legend(self, p: Plot) -> None:
         """Create the legend artist(s) and add onto the figure."""
         # Combine artists representing same information across layers
@@ -1722,18 +1742,14 @@ class Plotter:
                 merged_contents[key] = new_artists.copy(), labels
 
         # TODO explain
-        loc = "center right" if self._pyplot else "center left"
+        if "loc" not in self._legend_args:
+            self._legend_args["loc"] = "center right" if self._pyplot else "center left"
 
         base_legend = None
         for (name, _), (handles, labels) in merged_contents.items():
 
             legend = mpl.legend.Legend(
-                self._figure,
-                handles,
-                labels,
-                title=name,
-                loc=loc,
-                bbox_to_anchor=(.98, .55),
+                self._figure, handles, labels, title=name, **self._legend_args
             )
 
             if base_legend:
